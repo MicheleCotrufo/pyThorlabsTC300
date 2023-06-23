@@ -64,7 +64,7 @@ class interface(abstract_instrument_interface.abstract_interface):
 
     """
 
-    output = {'Power':0}  #We define this also as class variable. This makes it possible to see which data is produced by this interface without having to create an object
+    output = {'T1':0, 'T2':0, 'i1':0, 'i2':0}   #We define this also as class variable. This makes it possible to see which data is produced by this interface without having to create an object
 
     ## SIGNALS THAT WILL BE USED TO COMMUNICATE WITH THE GUI
     #                                                               | Triggered when ...                                        | Parameter(s) Sent     
@@ -76,16 +76,13 @@ class interface(abstract_instrument_interface.abstract_interface):
     sig_target_temperature_read = QtCore.pyqtSignal(int,float)  #   | The target temperature of a channel was read              | Channel number, Target Temperature
     sig_target_current_read = QtCore.pyqtSignal(int,float)      #   | The target current of a channel was read                  | Channel number, Target Current
     sig_channel_enabled = QtCore.pyqtSignal(int)                #   | A channel has been enabled                                | Channel number
-    sig_enabled_state_change = QtCore.pyqtSignal(int,int)
+    sig_enabled_state_change = QtCore.pyqtSignal(int,int)       #   | A channel has been enabled or disabled                    | Channel number, 1 = Enabled, 0 = Disabled
     sig_change_moving_status = QtCore.pyqtSignal(int)           #   | A step (either of temperature or current) initiated by ramp has started or ended | self.interface.SIG_MOVEMENT_STARTED, self.interface.SIG_MOVEMENT_ENDED
     
     sig_reading = QtCore.pyqtSignal(int)                    #   | Reading status changes                                    | 1 = Started Reading, 2 = Paused Reading, 3 Stopped Reading
     sig_updated_data = QtCore.pyqtSignal(object)            #   | Data is read from instrument                              | Acquired data 
-    sig_wavelength = QtCore.pyqtSignal(int)                 #   | Wavelength is changed                                     | Current Wavelength
-    sig_min_max_wavelength = QtCore.pyqtSignal(int,int)     #   | Min and max wavelengths supported by this device are read | Current Min and max wavelengths
-    sig_refreshtime = QtCore.pyqtSignal(float)              #   | Refresh time is changed                                   | Current Refresh time 
-    sig_power_range = QtCore.pyqtSignal(float)              #   | Power range is changed                                    | Current Power range
-    sig_auto_power_range = QtCore.pyqtSignal(bool)          #   | Auto power range setting is changed                       | Current Status of auto power range (true/false)
+    
+    
     ##
     # Identifier codes used for view-model communication. Other general-purpose codes are specified in abstract_instrument_interface
     SIG_READING_START = 1
@@ -139,7 +136,7 @@ class interface(abstract_instrument_interface.abstract_interface):
         self.ramp.set_ramp_settings(self.settings['ramp'])
         self.ramp.set_ramp_functions(func_move = self.increase_target_by,
                                      func_check_step_has_ended = self.step_has_ended, 
-                                     func_trigger = super().update(), 
+                                     func_trigger = super().update, 
                                      func_trigger_continue_ramp = None,
                                      func_set_value = self.set_target_value, 
                                      func_read_current_value = self.get_target_value, 
@@ -390,100 +387,7 @@ class interface(abstract_instrument_interface.abstract_interface):
         # This function is used by the ramp to check if a step has ended. For now it is a placeholder and always returns True
         return True
 
-
-    ###
-
-    #def set_wavelength(self, wl):
-    #    try:
-    #        if int(self.instrument.wavelength) == int(float(wl)): #in this case the number in the refresh time edit box is the same as the wavelength currently set
-    #                return True
-    #        self.logger.info(f"Setting the wavelength to {wl} for the device {self.connected_device_name}...")
-    #    except ValueError as e:
-    #        self.logger.error(f"The wavelength must be a valid number.")
-    #        self.sig_wavelength.emit(self.instrument.wavelength)
-    #        return False
-    #    try: 
-    #        self.instrument.wavelength = int(float(wl))
-    #        self.logger.info(f"Wavelength set correctly.")
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred while setting the wavelength: {e}")
-    #        self.sig_wavelength.emit(self.instrument.wavelength)
-    #        return False
-    #    self.read_power_range() #The boundaries of the power ranges might change when the wavelength is changed, so we need to update it after changing the wavelength
-    #    return True
-  
-    #def read_wavelength(self):
-    #    self.logger.info(f"Reading current wavelength from device {self.connected_device_name}...") 
-    #    self.wavelength = int(self.instrument.wavelength)
-    #    if self.wavelength == None:
-    #        self.logger.error(f"An error occurred while reading the wavelength from this device.")
-    #        return
-    #    self.sig_wavelength.emit(self.instrument.wavelength)
-    #    self.logger.info(f"Current wavelength is {self.wavelength}.") 
-    #    return
-      
-    #def read_min_max_wavelength(self):
-    #    self.logger.info(f"Reading min and max wavelength supported by device {self.connected_device_name}...") 
-    #    self.min_max_wls =  (self.instrument.min_wavelength,self.instrument.max_wavelength)
-    #    self.sig_min_max_wavelength.emit(self.min_max_wls[0],self.min_max_wls[1])
-    #    self.logger.info(f"Wavelength range: {self.min_max_wls[0]}-{self.min_max_wls[1]} nm") 
-
-    #def change_power_range(self,direction):
-    #    if direction == +1:
-    #        string = 'increase'
-    #    else: 
-    #        string = 'decrease'
-    #    self.logger.info(f"Trying to {string} the power range...")
-    #    self.instrument.move_to_next_power_range(direction)
-    #    self.read_power_range()
-    #    return
-
-    #def read_power_range(self):
-    #    self.logger.info(f"Reading current power range from device {self.connected_device_name}...") 
-    #    self.power_range = self.instrument.power_range
-    #    if self.power_range == None:
-    #        self.logger.error(f"An error occurred while reading the power range from this device.")
-    #        return
-    #    self.sig_power_range.emit(self.power_range)
-    #    self.logger.info(f"Current power range is {self.power_range}.") 
-
-    #def set_auto_power_range(self,auto_power_range):
-    #    auto_power_range = bool(auto_power_range)
-    #    status_string = 'ON' if auto_power_range else 'OFF'
-    #    self.logger.info(f"Setting the auto-ranging function to {status_string} for the device {self.connected_device_name}...")    
-    #    try:
-    #        self.instrument.auto_power_range  = auto_power_range
-    #        self.sig_auto_power_range.emit(auto_power_range)
-    #        self.logger.info(f"Setting changed succesfully.")
-    #        self.settings['auto_power_range'] = auto_power_range
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred while setting the auto-ranging status: {e}")
-    #    #self.read_auto_power_range()
-    #    self.read_power_range()
-
-    #def read_auto_power_range(self):
-    #    self.logger.info(f"Reading the status of the auto-ranging function for the device {self.connected_device_name}...")   
-    #    try:
-    #        auto_power_range = self.instrument.auto_power_range
-    #        status_string = 'ON' if auto_power_range else 'OFF'
-    #        self.sig_auto_power_range.emit(auto_power_range)
-    #        self.logger.info(f"The auto-ranging function is currently set to {status_string}.")
-    #        self.settings['auto_power_range'] = auto_power_range
-    #        return auto_power_range
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred while reading the auto-ranging status: {e}")
-
-    #def set_zero_powermeter(self):
-    #    try: 
-    #        ID = self.instrument.set_zero()
-    #        self.logger.info(f"Zero-ing the device {self.connected_device_name}...")
-    #        if ID == 1:
-    #            self.logger.info(f"Device was succesfully zeroed.")
-    #        else:
-    #            self.logger.error(f"An error occurred while zero-ing this device.")
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred while zero-ing this device: {e}")
-    #    return
+    ### END Functions mainly used for interface with ramp
 
     def start_reading(self):
         if(self.instrument.connected == False):
@@ -519,15 +423,9 @@ class interface(abstract_instrument_interface.abstract_interface):
         '''
         if(self.continuous_read == True):
             self.read_output_channel()
-            #(currentPower,power_units) = self.instrument.power
-            #self.output['Power'] = currentPower
-            #self.power_units = power_units
-            #self.stored_data.append(currentPower)
-            #self.output['PowerUnits'] = power_units
+  
+            #super().update()    
 
-            super().update()    
-
-            #self.sig_updated_data.emit([currentPower, power_units])
             QtCore.QTimer.singleShot(int(self.settings['refresh_time']*1e3), self.update)
            
         return
@@ -563,15 +461,8 @@ class gui(abstract_instrument_interface.abstract_gui):
         self.interface.sig_enabled_state_change.connect(self.on_enabled_state_change)
         #self.interface.sig_reading.connect(self.on_reading_status_change) 
         #self.interface.sig_updated_data.connect(self.on_data_change) 
-        #self.interface.sig_refreshtime.connect(self.on_refreshtime_change)
-        #self.interface.sig_wavelength.connect(self.on_wavelength_change)
-        #self.interface.sig_min_max_wavelength.connect(self.on_min_max_wavelength_update)
-        #self.interface.sig_auto_power_range.connect(self.on_auto_power_range_change)
-        #self.interface.sig_power_range.connect(self.on_power_range_change)
-        #self.interface.sig_close.connect(self.on_close)
 
         ### SET INITIAL STATE OF WIDGETS
-        #self.edit_RefreshTime.setText(f"{self.interface.settings['refresh_time']:.3f}")
         self.interface.send_list_devices()  
         #self.on_connection_status_change(self.interface.SIG_DISCONNECTED) #When GUI is created, all widgets are set to the "Disconnected" state              
         ###
@@ -778,28 +669,10 @@ class gui(abstract_instrument_interface.abstract_gui):
     #def on_refreshtime_change(self,value):
     #    self.edit_RefreshTime.setText(f"{value:.3f}")
 
-    #def on_wavelength_change(self,value):
-    #    self.edit_Wavelength.setText(str(int(value)))
-
-    #def on_min_max_wavelength_update(self,min,max):
-    #    self.label_Wavelength.setText(f"Wavelength<br>(<b>{min}-{max}</b>): ")
     
-    #def on_power_range_change(self,value):
-    #    self.edit_PowerRange.setText(f"{value:.2e}")
-    #    self.edit_PowerRange.setCursorPosition(1)
-
-    #def on_auto_power_range_change(self,value):
-    #    self.set_auto_power_range_state(value)
-    #    self.box_PowerRangeAuto.setChecked(value)
 
     #def on_close(self):
     #    return
-
-    #def set_auto_power_range_state(self,auto_power_range):
-    #    if auto_power_range:
-    #        self.disable_widget([self.edit_PowerRange,self.button_IncreasePowerRange, self.button_DecreasePowerRange])
-    #    else:
-    #        self.enable_widget([self.edit_PowerRange,self.button_IncreasePowerRange, self.button_DecreasePowerRange])
 
 #######################
 ### END Event Slots ###
@@ -833,21 +706,6 @@ class gui(abstract_instrument_interface.abstract_gui):
         target = self.widgets_channels[channel]['edit_target'].text()
         self.interface.set_target_channel(channel,target)
 
-    #def click_box_PowerRangeAuto(self, state):
-    #    if state == QtCore.Qt.Checked:
-    #        status_bool = True
-    #    else:
-    #        status_bool = False
-    #    self.interface.set_auto_power_range(status_bool)
-
-    #def click_button_set_zero_powermeter(self):
-    #    self.interface.set_zero_powermeter()
-
-    #def press_enter_wavelength(self):
-    #    return self.interface.set_wavelength(self.edit_Wavelength.text())
-        
-    #def click_button_change_power_range(self,direction):
-    #    self.interface.change_power_range(direction)
        
     #def click_button_StartPauseReading(self): 
     #    if(self.interface.continuous_read == False):
