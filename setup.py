@@ -9,7 +9,7 @@ with open("requirements_strict.txt") as f:
     required_packages = f.read().splitlines()
 
 setuptools.setup(name='pyThorlabsTC300',
-      version='0.2',
+      version='0.3',
       description='A python library/GUI to access and control the TC300 Temperature Controller of Thorlabs.',
       long_description=long_description,
       long_description_content_type='text/markdown',
